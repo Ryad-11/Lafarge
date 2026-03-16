@@ -1,0 +1,1002 @@
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Calculateur Transport – Holcim Algérie</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <style>
+        :root {
+            --blue: #00A3E0;
+            --red: #E63B2E;
+            --bg: #F4F6F9;
+            --border: #E2E8F0;
+            --text: #1A1A2E;
+            --muted: #6B7280;
+            --green: #10B981;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background: var(--bg);
+            min-height: 100vh;
+            color: var(--text);
+        }
+
+        .header {
+            background: var(--text);
+            padding: 0 40px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            height: 64px;
+            border-bottom: 3px solid var(--blue);
+        }
+
+        .header-brand {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .logo-block {
+            height: 38px;
+            display: flex;
+            align-items: center;
+        }
+
+        .logo-block img {
+            height: 38px;
+            width: auto;
+            object-fit: contain;
+        }
+
+        .brand-name {
+            font-size: 17px;
+            font-weight: 700;
+            color: white;
+            letter-spacing: -0.3px;
+        }
+
+        .brand-sub {
+            font-size: 11px;
+            color: #8899AA;
+            font-family: 'IBM Plex Mono', monospace;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+        }
+
+        .app {
+            display: grid;
+            grid-template-columns: 420px 1fr;
+            height: calc(100vh - 64px);
+        }
+
+        .sidebar {
+            background: #fff;
+            border-right: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            overflow-y: auto;
+        }
+
+        .sidebar-inner {
+            padding: 32px 28px 28px;
+            flex: 1;
+        }
+
+        .section-title {
+            font-size: 10px;
+            font-weight: 600;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            color: var(--muted);
+            margin-bottom: 20px;
+            font-family: 'IBM Plex Mono', monospace;
+        }
+
+        .input-row {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            margin-bottom: 12px;
+            position: relative;
+        }
+
+        .pin-icon {
+            width: 32px;
+            height: 32px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            font-size: 11px;
+            font-weight: 700;
+        }
+
+        .pin-icon.start {
+            background: rgba(16, 185, 129, 0.12);
+            color: var(--green);
+            border: 1.5px solid rgba(16, 185, 129, 0.3);
+        }
+
+        .pin-icon.end {
+            background: rgba(230, 59, 46, 0.12);
+            color: var(--red);
+            border: 1.5px solid rgba(230, 59, 46, 0.3);
+        }
+
+        .input-wrap {
+            flex: 1;
+            position: relative;
+            margin-bottom: 16px;
+        }
+
+        .input-label {
+            font-size: 10px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1.2px;
+            color: var(--muted);
+            margin-bottom: 6px;
+            font-family: 'IBM Plex Mono', monospace;
+        }
+
+        .addr-input {
+            width: 100%;
+            padding: 11px 14px;
+            border: 1.5px solid var(--border);
+            border-radius: 8px;
+            font-size: 13.5px;
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background: #FAFBFC;
+            color: var(--text);
+            transition: border-color 0.2s, box-shadow 0.2s;
+            outline: none;
+        }
+
+        .addr-input::placeholder {
+            color: #9CA3AF;
+        }
+
+        .addr-input:focus {
+            border-color: var(--blue);
+            background: white;
+            box-shadow: 0 0 0 3px rgba(0, 163, 224, 0.1);
+        }
+
+        .addr-input.filled {
+            border-color: #A7F3D0;
+            background: #F0FDF4;
+            color: var(--text);
+        }
+
+        .connector {
+            position: absolute;
+            left: 15px;
+            top: 48px;
+            width: 1.5px;
+            height: 24px;
+            background: var(--border);
+            z-index: 1;
+        }
+
+        .suggestions-box {
+            position: absolute;
+            top: calc(100% + 4px);
+            left: 0;
+            right: 0;
+            background: white;
+            border: 1.5px solid var(--blue);
+            border-radius: 8px;
+            max-height: 210px;
+            overflow-y: auto;
+            z-index: 9999;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+        }
+
+        .suggestion-item {
+            padding: 10px 14px;
+            font-size: 13px;
+            cursor: pointer;
+            border-bottom: 1px solid #F3F4F6;
+            display: flex;
+            align-items: flex-start;
+            gap: 8px;
+            transition: background 0.15s;
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            color: var(--text);
+        }
+
+        .suggestion-item:last-child {
+            border-bottom: none;
+        }
+
+        .suggestion-item:hover {
+            background: #EFF8FF;
+        }
+
+        .sug-icon {
+            color: var(--blue);
+            margin-top: 1px;
+            flex-shrink: 0;
+            font-size: 12px;
+        }
+
+        .sug-main {
+            font-weight: 600;
+            font-size: 13px;
+            color: var(--text);
+        }
+
+        .sug-sub {
+            color: var(--muted);
+            font-size: 11px;
+            margin-top: 1px;
+        }
+
+        .divider {
+            height: 1px;
+            background: var(--border);
+            margin: 24px 0;
+        }
+
+        .calc-btn {
+            width: 100%;
+            padding: 14px;
+            background: var(--blue);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 13.5px;
+            font-weight: 700;
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            cursor: pointer;
+            letter-spacing: 0.3px;
+            transition: background 0.2s, transform 0.1s, box-shadow 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            box-shadow: 0 4px 14px rgba(0, 163, 224, 0.25);
+        }
+
+        .calc-btn:hover:not(:disabled) {
+            background: #0090C8;
+            box-shadow: 0 6px 20px rgba(0, 163, 224, 0.35);
+        }
+
+        .calc-btn:active:not(:disabled) {
+            transform: scale(0.98);
+        }
+
+        .calc-btn:disabled {
+            background: #1E2330;
+            color: #374151;
+            box-shadow: none;
+            cursor: not-allowed;
+        }
+
+        #results {
+            margin-top: 20px;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 20px;
+            color: var(--muted);
+            font-size: 13px;
+        }
+
+        .loading-dots::after {
+            content: '';
+            animation: dots 1.4s infinite;
+        }
+
+        /* --- NOUVEAU STYLE POUR L'UPLOAD EXCEL --- */
+        .file-upload-wrapper {
+            position: relative;
+            width: 100%;
+            height: 48px;
+            border: 1.5px dashed var(--blue);
+            border-radius: 8px;
+            background: #F0F9FF;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.2s;
+            margin-bottom: 12px;
+        }
+
+        .file-upload-wrapper:hover {
+            background: #E0F2FE;
+            border-color: #0284C7;
+        }
+
+        .file-upload-input {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            opacity: 0;
+            cursor: pointer;
+        }
+
+        .file-upload-text {
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--blue);
+            pointer-events: none;
+            font-family: 'Plus Jakarta Sans', sans-serif;
+        }
+
+        @keyframes dots {
+
+            0%,
+            20% {
+                content: '.'
+            }
+
+            40% {
+                content: '..'
+            }
+
+            60%,
+            100% {
+                content: '...'
+            }
+        }
+
+        .result-card {
+            border-radius: 10px;
+            padding: 16px;
+            margin-bottom: 12px;
+            border: 1.5px solid;
+            animation: fadeIn 0.3s ease;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(8px)
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0)
+            }
+        }
+
+        .result-card.blue-card {
+            background: #F0F9FF;
+            border-color: #BAE6FD;
+        }
+
+        .result-card.red-card {
+            background: #FFF5F5;
+            border-color: #FECACA;
+        }
+
+        .card-header {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 12px;
+        }
+
+        .card-badge {
+            font-size: 10px;
+            font-weight: 700;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            padding: 3px 8px;
+            border-radius: 4px;
+            font-family: 'IBM Plex Mono', monospace;
+        }
+
+        .badge-blue {
+            background: var(--blue);
+            color: white;
+        }
+
+        .badge-red {
+            background: var(--red);
+            color: white;
+        }
+
+        .card-stats {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+            margin-bottom: 10px;
+        }
+
+        .stat {
+            background: white;
+            border-radius: 6px;
+            padding: 8px 10px;
+        }
+
+        .stat-label {
+            font-size: 10px;
+            color: var(--muted);
+            font-family: 'IBM Plex Mono', monospace;
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+        }
+
+        .stat-value {
+            font-size: 15px;
+            font-weight: 700;
+            color: var(--text);
+            margin-top: 2px;
+        }
+
+        .price-row {
+            background: var(--text);
+            color: white;
+            border-radius: 8px;
+            padding: 12px 14px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .price-unit {
+            font-size: 11px;
+            color: #9CA3AF;
+            font-family: 'IBM Plex Mono', monospace;
+            letter-spacing: 0.5px;
+        }
+
+        .price-value {
+            font-size: 22px;
+            font-weight: 800;
+            color: var(--blue);
+        }
+
+        .price-details {
+            text-align: right;
+        }
+
+        .map-section {
+            position: relative;
+        }
+
+        #map {
+            width: 100%;
+            height: 100%;
+        }
+
+        .map-overlay {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+            pointer-events: none;
+            z-index: 400;
+        }
+
+        .map-overlay-icon {
+            font-size: 40px;
+            margin-bottom: 8px;
+        }
+
+        .map-overlay-text {
+            font-size: 14px;
+            color: #555;
+            font-weight: 600;
+            background: rgba(255, 255, 255, 0.9);
+            padding: 8px 16px;
+            border-radius: 20px;
+        }
+
+        .map-legend {
+            position: absolute;
+            bottom: 24px;
+            right: 10px;
+            background: white;
+            border-radius: 8px;
+            padding: 10px 14px;
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+            z-index: 999;
+            font-size: 12px;
+            display: none;
+        }
+
+        .legend-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 5px;
+        }
+
+        .legend-row:last-child {
+            margin-bottom: 0;
+        }
+
+        .legend-line {
+            width: 24px;
+            height: 3px;
+        }
+
+        /* ── RESPONSIVE STYLES ── */
+        @media(max-width:860px) {
+            .app {
+                display: flex;
+                flex-direction: column;
+                height: auto;
+                min-height: calc(100vh - 64px);
+            }
+
+            .sidebar {
+                width: 100%;
+                border-right: none;
+                border-bottom: 1px solid var(--border);
+                overflow-y: visible;
+            }
+
+            .sidebar-inner {
+                padding: 24px 20px;
+            }
+
+            .map-section {
+                height: 450px;
+                width: 100%;
+            }
+
+            .header {
+                padding: 0 24px;
+            }
+        }
+
+        @media(max-width:500px) {
+            .header {
+                padding: 0 16px;
+            }
+
+            .brand-sub {
+                display: none;
+            }
+
+            .sidebar-inner {
+                padding: 20px 16px;
+            }
+
+            .map-section {
+                height: 350px;
+            }
+
+            .addr-input {
+                font-size: 16px;
+            }
+
+            .price-row {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 12px;
+            }
+
+            .price-details {
+                text-align: left;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <header class="header">
+        <div class="header-brand">
+            <div class="logo-block"><img src="holcim_logo.png" alt="Holcim" onerror="this.style.display='none'"></div>
+            <div>
+                <div class="brand-name">Holcim Algérie</div>
+                <div class="brand-sub">Transport Cost Calculator</div>
+            </div>
+        </div>
+    </header>
+
+    <div class="app">
+        <div class="sidebar">
+            <div class="sidebar-inner">
+                <div class="section-title">Paramètres de Transport</div>
+
+                <div class="input-wrap">
+                    <div class="input-label">Entité</div>
+                    <select class="addr-input" id="param-entity">
+                        <option value="CILAS">CILAS</option>
+                        <option value="LCO">LCO</option>
+                        <option value="LCM">LCM</option>
+                    </select>
+                </div>
+
+                <div class="input-wrap">
+                    <div class="input-label">Conditionnement</div>
+                    <select class="addr-input" id="param-condi">
+                        <option value="Sac">Sac</option>
+                        <option value="Vrac">Vrac</option>
+                        <option value="Clinker">Clinker</option>
+                    </select>
+                </div>
+
+                <div class="input-wrap">
+                    <div class="input-label">Type de Camion</div>
+                    <select class="addr-input" id="param-truck">
+                        <option value="Plateau">Plateau</option>
+                        <option value="Benne">Benne</option>
+                        <option value="Cocotte">Cocotte</option>
+                    </select>
+                </div>
+
+                <div class="divider"></div>
+
+                <div class="section-title">Itinéraire</div>
+
+                <div class="input-row" style="position:relative;">
+                    <div class="pin-icon start">▲</div>
+                    <div class="input-wrap" style="margin-bottom: 0;">
+                        <div class="input-label">Point de départ</div>
+                        <input class="addr-input" id="addr-start" placeholder="Ex: M'Sila, Route nationale…"
+                            autocomplete="off">
+                        <div class="suggestions-box" id="sug-start" style="display:none;"></div>
+                    </div>
+                </div>
+                <div class="connector"></div>
+                <div class="input-row">
+                    <div class="pin-icon end">●</div>
+                    <div class="input-wrap" style="margin-bottom: 0;">
+                        <div class="input-label">Destination</div>
+                        <input class="addr-input" id="addr-end" placeholder="Ex: Alger, Oran, Sétif…"
+                            autocomplete="off">
+                        <div class="suggestions-box" id="sug-end" style="display:none;"></div>
+                    </div>
+                </div>
+
+                <div class="divider"></div>
+                <div class="section-title">Historique Réel (Optionnel)</div>
+                <div class="input-wrap">
+                    <div class="file-upload-wrapper">
+                        <input type="file" id="excel-upload" class="file-upload-input" accept=".xlsx, .xls, .csv">
+                        <span class="file-upload-text" id="upload-text">📁 Importer un fichier Excel</span>
+                    </div>
+                </div>
+                <div class="divider"></div>
+
+
+                <button class="calc-btn" id="calcBtn">
+                    Calculer le coût de transport
+                </button>
+                <div id="results"></div>
+            </div>
+        </div>
+
+        <div class="map-section">
+            <div id="map"></div>
+            <div class="map-overlay" id="mapOverlay">
+                <div class="map-overlay-icon">🗺️</div>
+                <div class="map-overlay-text">Entrez les adresses pour voir l'itinéraire</div>
+            </div>
+            <div class="map-legend" id="mapLegend">
+                <div class="legend-row">
+                    <div class="legend-line" style="background:var(--blue);"></div><span>Geoapify (Standard)</span>
+                </div>
+                <div class="legend-row">
+                    <div class="legend-line" style="background:var(--red);border-top:3px dashed var(--red);height:0;">
+                    </div><span>TomTom (Camion)</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script>
+        // ════════════════════════════════════════════════════
+        // NO KEYS HERE - EVERYTHING IS SECURED ON THE BACKEND
+        // ════════════════════════════════════════════════════
+        const API_BASE = "/api";
+
+        async function getCostFromSheet(kmValue) {
+            try {
+                const response = await fetch(`${API_BASE}/cost`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        entity: document.getElementById('param-entity').value,
+                        truck: document.getElementById('param-truck').value,
+                        condi: document.getElementById('param-condi').value,
+                        km: kmValue
+                    })
+                });
+                const data = await response.json();
+                return data.cost || 0;
+            } catch (error) {
+                console.error("Erreur de calcul des coûts via le serveur", error);
+                return 0;
+            }
+        }
+
+        const map = L.map('map', { zoomControl: true }).setView([28.0339, 1.6596], 5);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '© OpenStreetMap', maxZoom: 19 }).addTo(map);
+
+        let startMarker = null, endMarker = null, geoLayer = null, tomLayer = null, selectingFor = 'start';
+        const greenIcon = L.divIcon({ html: `<div style="width:14px;height:14px;background:#10B981;border:3px solid white;border-radius:50%;box-shadow:0 2px 6px rgba(0,0,0,0.4);"></div>`, iconSize: [14, 14], iconAnchor: [7, 7] });
+        const redIcon = L.divIcon({ html: `<div style="width:14px;height:14px;background:#E63B2E;border:3px solid white;border-radius:50%;box-shadow:0 2px 6px rgba(0,0,0,0.4);"></div>`, iconSize: [14, 14], iconAnchor: [7, 7] });
+
+        map.on('click', function (e) {
+            fetch(`${API_BASE}/reverse?lat=${e.latlng.lat}&lon=${e.latlng.lng}`)
+                .then(r => r.json()).then(d => {
+                    if (!d.features?.length) return;
+                    setLocation(selectingFor, d.features[0].properties.formatted, e.latlng.lat, e.latlng.lng);
+                    selectingFor = selectingFor === 'start' ? 'end' : 'start';
+                });
+        });
+
+        function setLocation(which, label, lat, lng) {
+            const el = document.getElementById(`addr-${which}`);
+            el.value = label; el.dataset.lat = lat; el.dataset.lng = lng; el.classList.add('filled');
+            document.getElementById(`sug-${which}`).style.display = 'none';
+            if (which === 'start') {
+                if (startMarker) map.removeLayer(startMarker);
+                startMarker = L.marker([lat, lng], { icon: greenIcon }).addTo(map).bindPopup(`<b>Départ:</b> ${label}`);
+            } else {
+                if (endMarker) map.removeLayer(endMarker);
+                endMarker = L.marker([lat, lng], { icon: redIcon }).addTo(map).bindPopup(`<b>Arrivée:</b> ${label}`);
+            }
+            document.getElementById('mapOverlay').style.display = 'none';
+        }
+
+        function setupAutocomplete(inputId, sugId) {
+            const input = document.getElementById(inputId), sug = document.getElementById(sugId);
+            const which = inputId.replace('addr-', '');
+            let timer;
+
+            input.addEventListener('input', () => {
+                clearTimeout(timer);
+                input.classList.remove('filled'); delete input.dataset.lat; delete input.dataset.lng;
+
+                const val = input.value.trim();
+                if (val.length < 2) { sug.style.display = 'none'; return; }
+
+                timer = setTimeout(() => {
+                    fetch(`${API_BASE}/autocomplete?text=${encodeURIComponent(val)}`)
+                        .then(r => r.json()).then(data => {
+                            sug.innerHTML = '';
+                            if (!data.features?.length) { sug.style.display = 'none'; return; }
+
+                            data.features.forEach(f => {
+                                const p = f.properties, city = p.city || p.county || '';
+                                const div = document.createElement('div');
+                                div.className = 'suggestion-item';
+                                div.innerHTML = `<span class="sug-icon">📍</span><div><div class="sug-main"></div><div class="sug-sub"></div></div>`;
+                                div.querySelector('.sug-main').textContent = p.name || p.address_line1 || p.formatted.split(',')[0];
+                                div.querySelector('.sug-sub').textContent = `${city ? city + ', ' : ''}${p.country || ''}`;
+
+                                div.addEventListener('click', () => {
+                                    // 1. Extraction intelligente (Geoapify peut mettre la ville dans différentes cases)
+                                    const exactCity = p.city || p.town || p.village || p.county || "";
+                                    const exactWilaya = p.state || "";
+
+                                    // 2. On sauvegarde ces infos dans la "mémoire" du champ de saisie
+                                    const inputEl = document.getElementById(`addr-${which}`);
+                                    inputEl.dataset.city = exactCity;
+                                    inputEl.dataset.wilaya = exactWilaya;
+
+                                    // 3. On affiche le pin sur la carte
+                                    setLocation(which, p.formatted, p.lat, p.lon);
+                                });
+                                sug.appendChild(div);
+                            });
+                            sug.style.display = 'block';
+                        });
+                }, 280);
+            });
+            input.addEventListener('focus', () => { if (sug.children.length) sug.style.display = 'block'; });
+            document.addEventListener('click', e => { if (!input.contains(e.target) && !sug.contains(e.target)) sug.style.display = 'none'; });
+        }
+        setupAutocomplete('addr-start', 'sug-start');
+        setupAutocomplete('addr-end', 'sug-end');
+
+        // ════════════════════════════════════════════════════
+        // LINK CONDITIONNEMENT TO TRUCK TYPE
+        // ════════════════════════════════════════════════════
+        const condiSelect = document.getElementById('param-condi');
+        const truckSelect = document.getElementById('param-truck');
+
+        function updateTruckType() {
+            const condi = condiSelect.value;
+            if (condi === 'Sac') {
+                truckSelect.value = 'Plateau';
+            } else if (condi === 'Vrac') {
+                truckSelect.value = 'Cocotte';
+            } else if (condi === 'Clinker') {
+                truckSelect.value = 'Benne';
+            }
+        }
+
+        condiSelect.addEventListener('change', updateTruckType);
+
+        // ════════════════════════════════════════════════════
+        // DYNAMIC START LOCATION BY ENTITY (EXACT COORDINATES)
+        // ════════════════════════════════════════════════════
+        const entitySelect = document.getElementById('param-entity');
+
+        // ⚠️ REMPLISSEZ VOS COORDONNÉES GPS EXACTES ICI ⚠️
+        const ENTITY_LOCATIONS = {
+            'CILAS': {
+                label: 'Cimenterie Cilas Manbaa El Ghozlane, Djemourah, Biskra, Algeria',
+                lat: 35.0974, // <-- Modifiez cette latitude
+                lng: 5.6476   // <-- Modifiez cette longitude
+            },
+            'LCM': {
+                label: 'Lafarge Ciment, Hammam Dhalaa, Algeria',
+                lat: 35.8793, // <-- Modifiez cette latitude
+                lng: 4.4468   // <-- Modifiez cette longitude
+            },
+            'LCO': {
+                label: 'Cimenterie du Sig (CIBA), RN 4, 29029 Oggaz, Algeria',
+                lat: 35.5319, // <-- Modifiez cette latitude
+                lng: -0.2767  // <-- Modifiez cette longitude
+            }
+        };
+
+        function updateStartLocation() {
+            const entity = entitySelect.value;
+            const loc = ENTITY_LOCATIONS[entity];
+            if (loc) {
+                // Renseigne le champ texte avec l'adresse complète et utilise vos GPS exacts
+                setLocation('start', loc.label, loc.lat, loc.lng);
+                // Centre la carte sur l'usine (zoom 12 pour bien voir)
+                map.setView([loc.lat, loc.lng], 12);
+            }
+        }
+
+        entitySelect.addEventListener('change', updateStartLocation);
+
+        // ════════════════════════════════════════════════════
+        // INITIALIZATION
+        // ════════════════════════════════════════════════════
+        updateTruckType();
+
+        // Attendre que la carte Leaflet soit totalement chargée avant de placer le premier point
+        setTimeout(() => {
+            updateStartLocation();
+        }, 300);
+
+        // ════════════════════════════════════════════════════
+        // CALCULATE
+        // ════════════════════════════════════════════════════
+        document.getElementById('calcBtn').addEventListener('click', async () => {
+            const s = document.getElementById('addr-start'), e = document.getElementById('addr-end');
+            const lat1 = parseFloat(s.dataset.lat), lng1 = parseFloat(s.dataset.lng);
+            const lat2 = parseFloat(e.dataset.lat), lng2 = parseFloat(e.dataset.lng);
+
+            if (isNaN(lat1) || isNaN(lat2)) { alert("⚠️ Veuillez sélectionner les deux adresses dans les suggestions."); return; }
+            if (geoLayer) map.removeLayer(geoLayer);
+            if (tomLayer) map.removeLayer(tomLayer);
+
+            const results = document.getElementById('results');
+            results.innerHTML = `<div class="loading">Calcul via le serveur<span class="loading-dots"></span></div>`;
+            document.getElementById('calcBtn').disabled = true;
+
+            const geoP = fetch(`${API_BASE}/route/geo?waypoints=${lat1},${lng1}|${lat2},${lng2}`)
+                .then(r => r.json()).then(async data => {
+                    if (!data.features?.[0]) return null;
+                    const feat = data.features[0]; let coords = [];
+                    if (feat.geometry.type === "MultiLineString") feat.geometry.coordinates.forEach(s => s.forEach(c => coords.push([c[1], c[0]])));
+                    else coords = feat.geometry.coordinates.map(c => [c[1], c[0]]);
+                    geoLayer = L.polyline(coords, { color: '#00A3E0', weight: 5, opacity: 0.85 }).addTo(map);
+                    const km = feat.properties.distance / 1000;
+                    return { km: km.toFixed(1), cost_per_ton: await getCostFromSheet(km) };
+                }).catch(() => null);
+
+            const tomP = fetch(`${API_BASE}/route/tom?lat1=${lat1}&lng1=${lng1}&lat2=${lat2}&lng2=${lng2}`)
+                .then(r => r.json()).then(async data => {
+                    if (!data.routes?.length) return null;
+                    const route = data.routes[0];
+                    const coords = route.legs[0].points.map(p => [p.latitude, p.longitude]);
+                    tomLayer = L.polyline(coords, { color: '#E63B2E', weight: 3, dashArray: '10,8', opacity: 0.9 }).addTo(map);
+                    map.fitBounds(L.latLngBounds(coords), { padding: [50, 50] });
+                    const km = route.summary.lengthInMeters / 1000;
+                    return { km: km.toFixed(1), cost_per_ton: await getCostFromSheet(km) };
+                }).catch(() => null);
+            // --- NOUVEAU : Envoi du fichier Excel s'il y en a un ---
+            const destInput = document.getElementById('addr-end');
+            const destCity = destInput.dataset.city || "";
+            const destWilaya = destInput.dataset.wilaya || "";
+            const historyFile = document.getElementById('excel-upload').files[0];
+
+            let statsP = Promise.resolve(null); // Par défaut, on ne cherche pas de stats
+
+            if (historyFile) {
+                const formData = new FormData();
+                formData.append('excelFile', historyFile);
+                formData.append('entity', document.getElementById('param-entity').value);
+                formData.append('condi', document.getElementById('param-condi').value);
+                formData.append('geoCity', destCity);
+                formData.append('geoWilaya', destWilaya);
+
+                // On envoie le fichier au serveur
+                statsP = fetch(`${API_BASE}/stats`, {
+                    method: 'POST',
+                    body: formData // Le navigateur gère le Content-Type automatiquement
+                }).then(r => r.json()).catch(() => null);
+            }
+
+            // On attend que les 3 requêtes (Geo, TomTom, Stats) finissent
+            const [geo, tom, excelStats] = await Promise.all([geoP, tomP, statsP]);
+
+            document.getElementById('calcBtn').disabled = false;
+            document.getElementById('mapLegend').style.display = 'block';
+
+            // --- CRÉATION DES CARTES RÉSULTATS ---
+            const card = (r, cc, bc, name) => `
+                <div class="result-card ${cc}">
+                    <div class="card-header"><span class="card-badge ${bc}">${name}</span></div>
+                    <div class="card-stats">
+                        <div class="stat"><div class="stat-label">Distance</div><div class="stat-value">${r.km} km</div></div>
+                    </div>
+                    <div class="price-row">
+                        <div><div class="price-unit">COÛT TRANSPORT THÉORIQUE</div></div>
+                        <div class="price-details">
+                            <div class="price-value">${Math.round(Number(r.cost_per_ton)).toLocaleString('fr-DZ')} DZD</div>
+                            <div class="price-unit">DZD / tonne</div>
+                        </div>
+                    </div>
+                </div>`;
+
+            let html = '';
+            if (geo) html += card(geo, 'blue-card', 'badge-blue', 'Geoapify · Standard');
+            if (tom) html += card(tom, 'red-card', 'badge-red', 'TomTom · Camion');
+
+
+            // --- CARTE DE L'HISTORIQUE EXCEL AMÉLIORÉE ---
+            if (excelStats && excelStats.found) {
+                html += `
+                <div class="result-card" style="background: #F0FDF4; border-color: #86EFAC; margin-top: 16px;">
+                    <div class="card-header">
+                        <span class="card-badge" style="background: #10B981; color: white;">📊 Historique Réel (${excelStats.precision})</span>
+                    </div>
+                    <div class="card-stats" style="grid-template-columns: 1fr 1fr; gap: 8px;">
+                        <div class="stat" style="border: 1px solid #D1FAE5;"><div class="stat-label">Factures passées</div><div class="stat-value">${excelStats.count} voyages</div></div>
+                        <div class="stat" style="border: 1px solid #D1FAE5;"><div class="stat-label">distance(plus frequent)</div><div class="stat-value">${Math.round(excelStats.frequentKm)} km</div></div>
+                        
+                        <div class="stat" style="border: 1px solid #D1FAE5;"><div class="stat-label">Prix Médian</div><div class="stat-value" style="color: #059669;">${Math.round(excelStats.median).toLocaleString('fr-DZ')} DZD</div></div>
+                        <div class="stat" style="border: 1px solid #D1FAE5;"><div class="stat-label">Prix Moyen</div><div class="stat-value">${Math.round(excelStats.avg).toLocaleString('fr-DZ')} DZD</div></div>
+                        
+                        <div class="stat" style="border: 1px solid #D1FAE5;"><div class="stat-label">Prix Minimum</div><div class="stat-value">${Math.round(excelStats.min).toLocaleString('fr-DZ')} DZD</div></div>
+                        <div class="stat" style="border: 1px solid #D1FAE5;"><div class="stat-label">Prix Maximum</div><div class="stat-value">${Math.round(excelStats.max).toLocaleString('fr-DZ')} DZD</div></div>
+                    </div>
+                </div>`;
+            } else if (excelStats && !excelStats.found) {
+                html += `
+                <div class="result-card" style="background: #FFFBEB; border-color: #FDE68A; margin-top: 16px;">
+                    <div class="card-header">
+                        <span class="card-badge" style="background: #F59E0B; color: white;">⚠️ Historique Réel</span>
+                    </div>
+                    <p style="font-size: 12px; margin-top: 8px; color: #92400E;">Aucune facture trouvée dans ce fichier pour ce trajet précis.</p>
+                </div>`;
+            }
+            results.innerHTML = html || `<div class="loading" style="color:#E63B2E;">❌ Serveur occupé ou itinéraire introuvable.</div>`;
+        });
+        // NOUVEAU : Afficher le nom du fichier Excel sélectionné
+        document.getElementById('excel-upload').addEventListener('change', function (e) {
+            const fileName = e.target.files[0] ? e.target.files[0].name : "📁 Importer un fichier Excel";
+            document.getElementById('upload-text').textContent = fileName;
+        });
+    </script>
+</body>
+
+</html>
